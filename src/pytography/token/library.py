@@ -127,7 +127,7 @@ class JsonWebToken:
         cls,
         token: str,
         key: str,
-        algorithm: str,
+        algorithm: Literal["HS256", "HS384", "HS512"] = "HS256",
         iss: str | None = None,
         sub: str | None = None,
         aud: str | None = None,

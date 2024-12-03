@@ -10,39 +10,37 @@ pip install pytography
 ## Quick Start
 ### Password Hashing with Scrypt (Default)
 ```python
-from pytography.password import PasswordHashLibrary
+from pytography import PasswordHashLibrary
 
-encoded_password = PasswordHashLibrary.encode("my_secure_password")
-is_valid = PasswordHashLibrary.verify("my_secure_password", encoded_password)
+encoded_password = PasswordHashLibrary.encode(password="password")
+is_valid = PasswordHashLibrary.verify(password="password", encoded_password=encoded_password)
 ```
 
 ### Password Hashing with PBKDF2
 ```python
-from pytography.password import PasswordHashLibrary
+from pytography import PasswordHashLibrary
 
-encoded_password = PasswordHashLibrary.encode(
-    "my_secure_password",
-    algorithm="pbkdf2",
-    hash_name="sha256",
-    iterations=600000
-)
-is_valid = PasswordHashLibrary.verify("my_secure_password", encoded_password)
+encoded_password = PasswordHashLibrary.encode(password="password", algorithm="pbkdf2")
+is_valid = PasswordHashLibrary.verify(password="password", encoded_password=encoded_password)
 ```
 
 ### JSON Web Token (JWT)
 ```python
-from pytography.token import JsonWebToken
+from pytography import JsonWebToken
+from datetime import datetime, timedelta, UTC
 
 jwt = JsonWebToken()
+now = datetime.now(UTC)
+exp = (now + timedelta(seconds=7200)).timestamp()
 
 # Create a token
-token = jwt.encode({"user_id": 123}, "your_secret_key")
+token = jwt.encode(payload={"exp": exp, "user_id": 123}, key="key")
 
 # Decode token to get payload
-payload = jwt.decode(token, "your_secret_key")
+header, payload, signature = jwt.decode(token=token)
 
 # Verify token
-is_valid = jwt.verify(token, "your_secret_key")
+is_valid = jwt.verify(token=token, key="key")
 ```
 
 ## License
