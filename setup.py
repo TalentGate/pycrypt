@@ -4,8 +4,8 @@ from setuptools import setup, find_packages
 CURDIR = dirname(abspath(__file__))
 
 CLASSIFIERS = """
-Development Status :: 1 - Production/Stable
-License :: OSI Approved :: Apache Software License
+Development Status :: 5 - Production/Stable
+License :: OSI Approved :: MIT License
 Operating System :: OS Independent
 Programming Language :: Python
 Programming Language :: Python :: 3
@@ -16,7 +16,7 @@ Programming Language :: Python :: 3.9
 Programming Language :: Python :: 3.10
 Programming Language :: Python :: 3.11
 Programming Language :: Python :: 3 :: Only
-Topic :: Software Development :: Security
+Topic :: Security :: Cryptography
 """.strip().splitlines()
 
 with open(join(CURDIR, "README.md")) as f:
