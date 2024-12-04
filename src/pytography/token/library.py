@@ -84,8 +84,7 @@ class JsonWebToken:
         Example:
             token = JsonWebToken.encode(payload, key, 'HS256')
         """
-        if header is None:
-            header = {"alg": algorithm, "typ": "JWT"}
+        header = {**{"alg": algorithm, "typ": "JWT"}, **(header or {})}
         base64_header = base64.b64encode(json.dumps(header).encode("utf-8")).decode(
             "utf-8"
         )

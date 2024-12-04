@@ -29,18 +29,17 @@ is_valid = PasswordHashLibrary.verify(password="password", encoded_password=enco
 from pytography import JsonWebToken
 from datetime import datetime, timedelta, UTC
 
-jwt = JsonWebToken()
 now = datetime.now(UTC)
 exp = (now + timedelta(seconds=7200)).timestamp()
 
 # Create a token
-token = jwt.encode(payload={"exp": exp, "user_id": 123}, key="key")
+token = JsonWebToken.encode(payload={"exp": exp, "user_id": 123}, key="key")
 
 # Decode token to get payload
-header, payload, signature = jwt.decode(token=token)
+header, payload, signature = JsonWebToken.decode(token=token)
 
 # Verify token
-is_valid = jwt.verify(token=token, key="key")
+is_valid = JsonWebToken.verify(token=token, key="key")
 ```
 
 ## License

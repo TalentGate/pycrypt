@@ -26,7 +26,7 @@ with open(join(CURDIR, "requirements.txt")) as f:
 
 setup(
     name="pytography",
-    version="0.1.0",
+    version="0.1.1",
     description="A library for password hashing and JWT encoding",
     long_description=DESCRIPTION,
     long_description_content_type="text/markdown",
