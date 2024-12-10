@@ -31,7 +31,7 @@ class Pbkdf2:
             str: A base64-encoded string that includes the encoded password hash and its parameters. The format of the returned
                  string is as follows:
 
-                 $pbkdf2-{hash_name}$i={iterations}${base64_salt}${base64_password_hash}
+                 $pbkdf2-{hash_name}$i={iterations}${salt}${password_hash}
 
                  Where:
                  - `{hash_name}`: The hash function used (e.g., 'sha256').
@@ -71,18 +71,19 @@ class Pbkdf2:
             tuple: A tuple containing the decoded hash name, salt, iterations, and password hash.
 
         Example:
-            hash_name, salt, iterations, password_hash = Pbkdf2.decode(encoded_password)
+            hash_name, iterations, salt, password_hash = Pbkdf2.decode(encoded_password)
         """
         components = encoded_password.split("$")
         hash_name = components[1].split("-")[1]
         iterations = int(components[2].split("=")[1])
+
         salt = base64.b64decode(components[3].encode("utf-8")).decode("utf-8")
         password_hash = base64.b64decode(components[4].encode("utf-8"))
 
         return (
             hash_name,
-            salt,
             iterations,
+            salt,
             password_hash,
         )
 
@@ -105,16 +106,21 @@ class Pbkdf2:
         Example:
             is_valid = Pbkdf2.verify('password', encoded_password)
         """
-        decoded_data = cls.decode(encoded_password=encoded_password)
+        (
+            hash_name,
+            iterations,
+            salt,
+            password_hash,
+        ) = cls.decode(encoded_password=encoded_password)
 
-        password_hash = hashlib.pbkdf2_hmac(
-            hash_name=decoded_data[0],
+        computed_password_hash = hashlib.pbkdf2_hmac(
+            hash_name=hash_name,
             password=password.encode("utf-8"),
-            salt=decoded_data[1].encode("utf-8"),
-            iterations=decoded_data[2],
+            salt=salt.encode("utf-8"),
+            iterations=iterations,
         )
 
-        return secrets.compare_digest(password_hash, decoded_data[3])
+        return secrets.compare_digest(password_hash, computed_password_hash)
 
 
 class Scrypt:
@@ -177,30 +183,31 @@ class Scrypt:
         """
         Decode a previously encoded Scrypt password string into its components.
 
-        This method splits the encoded password string into its individual components: the salt, n, r, p,
+        This method splits the encoded password string into its individual components: the n, r, p, salt
         and password hash. The decoded components are returned as a tuple.
 
         Args:
             encoded_password (str): The base64-encoded Scrypt password string.
 
         Returns:
-            tuple: A tuple containing the decoded salt, n, r, p, and password hash.
+            tuple: A tuple containing the decoded n, r, p, salt, and password hash.
 
         Example:
-            salt, n, r, p, password_hash = Scrypt.decode(encoded_password)
+            n, r, p, salt, password_hash = Scrypt.decode(encoded_password)
         """
         components = encoded_password.split("$")
         n = int(components[2].split("=")[1])
         r = int(components[3].split("=")[1])
         p = int(components[4].split("=")[1])
+
         salt = base64.b64decode(components[5].encode("utf-8")).decode("utf-8")
         password_hash = base64.b64decode(components[6].encode("utf-8"))
 
         return (
-            salt,
             n,
             r,
             p,
+            salt,
             password_hash,
         )
 
@@ -223,14 +230,20 @@ class Scrypt:
         Example:
             is_valid = Scrypt.verify('password', encoded_password)
         """
-        decoded_password = cls.decode(encoded_password)
+        (
+            n,
+            r,
+            p,
+            salt,
+            password_hash,
+        ) = cls.decode(encoded_password)
 
-        password_hash = hashlib.scrypt(
+        computed_password_hash = hashlib.scrypt(
             password=password.encode("utf-8"),
-            salt=decoded_password[0].encode("utf-8"),
-            n=decoded_password[1],
-            r=decoded_password[2],
-            p=decoded_password[3],
+            salt=salt.encode("utf-8"),
+            n=n,
+            r=r,
+            p=p,
         )
 
-        return secrets.compare_digest(password_hash, decoded_password[4])
+        return secrets.compare_digest(password_hash, computed_password_hash)

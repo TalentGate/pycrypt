@@ -42,20 +42,29 @@ class JsonWebToken:
         Example:
             is_valid_signature = JsonWebToken._verify_signature(header, payload, key, 'HS256', signature)
         """
-        base64_header = base64.b64encode(json.dumps(header).encode("utf-8")).decode(
-            "utf-8"
+        base64_header = (
+            base64.urlsafe_b64encode(json.dumps(header).encode("utf-8"))
+            .decode("utf-8")
+            .rstrip("=")
         )
-        base64_payload = base64.b64encode(json.dumps(payload).encode("utf-8")).decode(
-            "utf-8"
+        base64_payload = (
+            base64.urlsafe_b64encode(json.dumps(payload).encode("utf-8"))
+            .decode("utf-8")
+            .rstrip("=")
         )
-        msg = base64.b64encode(f"{base64_header}.{base64_payload}".encode("utf-8"))
-        generated_signature = base64.b64encode(
-            hmac.new(
-                key=key.encode("utf-8"), msg=msg, digestmod=DigestMod[algorithm]
-            ).digest()
-        ).decode("utf-8")
+        msg = f"{base64_header}.{base64_payload}".encode("utf-8")
 
-        return compare_digest(signature, generated_signature)
+        computed_signature = (
+            base64.urlsafe_b64encode(
+                hmac.new(
+                    key=key.encode("utf-8"), msg=msg, digestmod=DigestMod[algorithm]
+                ).digest()
+            )
+            .decode("utf-8")
+            .rstrip("=")
+        )
+
+        return compare_digest(signature, computed_signature)
 
     @classmethod
     def encode(
@@ -85,18 +94,28 @@ class JsonWebToken:
             token = JsonWebToken.encode(payload, key, 'HS256')
         """
         header = {**{"alg": algorithm, "typ": "JWT"}, **(header or {})}
-        base64_header = base64.b64encode(json.dumps(header).encode("utf-8")).decode(
-            "utf-8"
+        base64_header = (
+            base64.urlsafe_b64encode(json.dumps(header).encode("utf-8"))
+            .decode("utf-8")
+            .rstrip("=")
         )
-        base64_payload = base64.b64encode(json.dumps(payload).encode("utf-8")).decode(
-            "utf-8"
+        base64_payload = (
+            base64.urlsafe_b64encode(json.dumps(payload).encode("utf-8"))
+            .decode("utf-8")
+            .rstrip("=")
         )
-        msg = base64.b64encode(f"{base64_header}.{base64_payload}".encode("utf-8"))
-        signature = base64.b64encode(
-            hmac.new(
-                key=key.encode("utf-8"), msg=msg, digestmod=DigestMod[algorithm]
-            ).digest()
-        ).decode("utf-8")
+        msg = f"{base64_header}.{base64_payload}".encode("utf-8")
+
+        signature = (
+            base64.urlsafe_b64encode(
+                hmac.new(
+                    key=key.encode("utf-8"), msg=msg, digestmod=DigestMod[algorithm]
+                ).digest()
+            )
+            .decode("utf-8")
+            .rstrip("=")
+        )
+
         return f"{base64_header}.{base64_payload}.{signature}"
 
     @classmethod
@@ -117,8 +136,8 @@ class JsonWebToken:
             header, payload, signature = JsonWebToken.decode(token)
         """
         header, payload, signature = token.split(".")
-        header = json.loads(base64.b64decode(header.encode("utf-8")))
-        payload = json.loads(base64.b64decode(payload.encode("utf-8")))
+        header = json.loads(base64.urlsafe_b64decode(header.encode("utf-8")))
+        payload = json.loads(base64.urlsafe_b64decode(payload.encode("utf-8")))
         return header, payload, signature
 
     @classmethod
