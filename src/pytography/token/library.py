@@ -20,6 +20,80 @@ class JsonWebToken:
     """
 
     @classmethod
+    def _urlsafe_b64encode_dict(cls, obj: Any) -> str:
+        """
+         Encodes a Python object into a URL-safe base64 string.
+
+         The object is serialized to a JSON string using `json.dumps()` and then URL-safe base64
+         encoded. This is typically used for encoding the JWT header and payload.
+
+        Args:
+             obj (Any): The Python object to be serialized and encoded. It should be serializable
+                         by `json.dumps()`.
+
+         Returns:
+             str: A URL-safe base64-encoded string representing the serialized JSON object.
+
+         Example:
+             data = {'key': 'value'}
+             encoded_data = JsonWebToken._urlsafe_b64encode_dict(data)
+        """
+        return base64.urlsafe_b64encode(json.dumps(obj).encode("utf-8")).decode("utf-8")
+
+    @classmethod
+    def _urlsafe_b64decode_dict(cls, s: str) -> dict:
+        """
+        Decodes a URL-safe base64 string into a Python dictionary.
+
+        The input string is first decoded from URL-safe base64 into bytes, then the byte data
+        is deserialized into a Python dictionary using `json.loads()`.
+
+        Args:
+            s (str): A URL-safe base64-encoded string to be decoded and parsed into a dictionary.
+
+        Returns:
+            dict: A Python dictionary parsed from the decoded JSON data.
+
+        Example:
+            encoded_data = 'eyJrZXkiOiAidmFsdWUifQ=='  # Example URL-safe base64 encoded string
+            decoded_data = JsonWebToken._urlsafe_b64decode_dict(encoded_data)
+        """
+        return json.loads(base64.urlsafe_b64decode(s))
+
+    @classmethod
+    def _generate_signature(
+        cls, base64_header: str, base64_payload: str, key: str, algorithm: str
+    ) -> str:
+        """
+        Generates a cryptographic signature for a JSON Web Token (JWT).
+
+        This method combines the base64-encoded header and payload, applies HMAC (Hash-based
+        Message Authentication Code) using the provided secret key and signing algorithm,
+        then URL-safe base64 encodes the resulting signature.
+
+        Args:
+            base64_header (str): The base64-encoded JWT header string.
+            base64_payload (str): The base64-encoded JWT payload string.
+            key (str): The secret key used for signing the token.
+            algorithm (str): The signing algorithm (e.g., "HS256", "HS384", "HS512").
+
+        Returns:
+            str: A URL-safe base64-encoded signature for the JWT.
+
+        Example:
+            header = 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9'
+            payload = 'eyJ1c2VyX2lkIjogMSwgIm5hbWUiOiAiSm9obiBEb2UifQ=='
+            key = 'secretkey'
+            algorithm = 'HS256'
+            signature = JsonWebToken._generate_signature(header, payload, key, algorithm)
+        """
+        msg = f"{base64_header}.{base64_payload}".encode("utf-8")
+        digest = hmac.new(
+            key=key.encode("utf-8"), msg=msg, digestmod=DigestMod[algorithm]
+        ).digest()
+        return base64.urlsafe_b64encode(digest).decode("utf-8").rstrip("=")
+
+    @classmethod
     def _verify_signature(
         cls, header: dict, payload: dict, key: str, algorithm: str, signature: str
     ) -> bool:
@@ -42,26 +116,11 @@ class JsonWebToken:
         Example:
             is_valid_signature = JsonWebToken._verify_signature(header, payload, key, 'HS256', signature)
         """
-        base64_header = (
-            base64.urlsafe_b64encode(json.dumps(header).encode("utf-8"))
-            .decode("utf-8")
-            .rstrip("=")
-        )
-        base64_payload = (
-            base64.urlsafe_b64encode(json.dumps(payload).encode("utf-8"))
-            .decode("utf-8")
-            .rstrip("=")
-        )
-        msg = f"{base64_header}.{base64_payload}".encode("utf-8")
+        base64_header = cls._urlsafe_b64encode_dict(header)
+        base64_payload = cls._urlsafe_b64encode_dict(payload)
 
-        computed_signature = (
-            base64.urlsafe_b64encode(
-                hmac.new(
-                    key=key.encode("utf-8"), msg=msg, digestmod=DigestMod[algorithm]
-                ).digest()
-            )
-            .decode("utf-8")
-            .rstrip("=")
+        computed_signature = cls._generate_signature(
+            base64_header, base64_payload, key, algorithm
         )
 
         return compare_digest(signature, computed_signature)
@@ -94,32 +153,17 @@ class JsonWebToken:
             token = JsonWebToken.encode(payload, key, 'HS256')
         """
         header = {**{"alg": algorithm, "typ": "JWT"}, **(header or {})}
-        base64_header = (
-            base64.urlsafe_b64encode(json.dumps(header).encode("utf-8"))
-            .decode("utf-8")
-            .rstrip("=")
-        )
-        base64_payload = (
-            base64.urlsafe_b64encode(json.dumps(payload).encode("utf-8"))
-            .decode("utf-8")
-            .rstrip("=")
-        )
-        msg = f"{base64_header}.{base64_payload}".encode("utf-8")
+        base64_header = cls._urlsafe_b64encode_dict(header)
+        base64_payload = cls._urlsafe_b64encode_dict(payload)
 
-        signature = (
-            base64.urlsafe_b64encode(
-                hmac.new(
-                    key=key.encode("utf-8"), msg=msg, digestmod=DigestMod[algorithm]
-                ).digest()
-            )
-            .decode("utf-8")
-            .rstrip("=")
+        signature = cls._generate_signature(
+            base64_header, base64_payload, key, algorithm
         )
 
         return f"{base64_header}.{base64_payload}.{signature}"
 
     @classmethod
-    def decode(cls, token: str) -> tuple[Any, Any, str]:
+    def decode(cls, token: str) -> tuple[dict, dict, str]:
         """
         Decode a JWT string into its components.
 
@@ -136,8 +180,8 @@ class JsonWebToken:
             header, payload, signature = JsonWebToken.decode(token)
         """
         header, payload, signature = token.split(".")
-        header = json.loads(base64.urlsafe_b64decode(header.encode("utf-8")))
-        payload = json.loads(base64.urlsafe_b64decode(payload.encode("utf-8")))
+        header = cls._urlsafe_b64decode_dict(header)
+        payload = cls._urlsafe_b64decode_dict(payload)
         return header, payload, signature
 
     @classmethod
